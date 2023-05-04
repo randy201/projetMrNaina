@@ -125,7 +125,12 @@ public class FrontServlet extends HttpServlet{
                 if(ob1 instanceof ModelView){
                     ModelView mv=(ModelView)ob1;
                     RequestDispatcher rd= request.getRequestDispatcher(mv.getUrl());
+                    HashMap<String,Object> hm= mv.getData();
+                    for (Map.Entry<String, Object> entry : hm.entrySet()) {
+                        request.setAttribute(entry.getKey() , entry.getValue());
+                    }
                     rd.forward(request,response);
+
                 } 
 
             }catch (Exception e){

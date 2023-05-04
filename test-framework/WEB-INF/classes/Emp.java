@@ -9,7 +9,12 @@ public class Emp{
     @Url(key="Emp-getAllEmp")
     public ModelView getAllEmp(){
         System.out.println("voila les employées");
-        return new ModelView("test.jsp");
+        ModelView mv= new ModelView("test.jsp");
+        mv.addItem("nom", "Randy");
+        mv.addItem("prenom", "Randy");
+        mv.addItem("etu", "1989");
+
+        return mv;
     }
 
     @Url(key="Emp-findEmp")
