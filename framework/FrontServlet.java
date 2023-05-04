@@ -2,7 +2,9 @@ package etu1989.framework.servlet;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.lang.reflect.Field;
 
 import java.io.*;
@@ -35,26 +37,49 @@ public class FrontServlet extends HttpServlet{
 
     public void getAllFile() throws Exception{
         String packageName = "etu1989.model";
-        URL root = Thread.currentThread().getContextClassLoader().getResource(packageName.replace(".", "/"));
-        String map=new File(root.getFile())+"\\";
-        FileFilter filter = new FileFilter() {
-            public boolean accept(File f)
-            {
-                return f.getName().endsWith("class");
-            }
-        };
-        for(File f : new File(map.replace("%20", " ")).listFiles(filter)){
-            String file = f.getName().replace(".class", "");
-            Class<?> myClass = Class.forName(packageName+"."+file);
-            Method[] methods = myClass.getMethods();
-            for(Method method : methods){
-                if(method.getAnnotation(etu1989.annotation.Url.class)!=null){
-                    String url = method.getAnnotation(etu1989.annotation.Url.class).key();
-                    String[] data = url.split("-");
-                    this.UrlMapping.put(url,new Mapping(data[0], data[1]));
+        URL root = Thread.currentThread().getContextClassLoader().getResource(packageName.replaceAll("[.]", "\\\\"));
+        File packDir = new File(root.toURI());
+        System.out.println(root.toURI());
+        File[] inside = packDir.listFiles(file->file.getName().endsWith(".class"));
+        List<Class> lists = new ArrayList<>();
+        for (File f : inside) {
+            String c = packageName+"."+f.getName().substring(0, f.getName().lastIndexOf("."));
+            lists.add(Class.forName(c));
+        }
+        for ( Class c : lists) {
+            Method[] methods = c.getDeclaredMethods();
+            for(Method m : methods){
+                if(m.isAnnotationPresent(etu1989.annotation.Url.class)){
+                    Url url= m.getAnnotation(etu1989.annotation.Url.class);
+                    if(! url.key().isEmpty() && url.key() != null){
+                        Mapping map = new Mapping(c.getName() , m.getName());
+                        this.UrlMapping.put(url.key(),map);
+                    }
                 }
             }
         }
+        // String map = new File( root.getFile() ) + "\\";
+        // FileFilter filter = new FileFilter() {
+        //     public boolean accept(File f)
+        //     {
+        //         return f.getName().endsWith("class");
+        //     }
+        // };
+        // // for(File f : new File(map.replace("%20", " ")).listFiles(filter)){
+        // File ff= new File(map);
+        // for(File f : ff.listFiles(filter)){
+        
+        //     String file = f.getName().replace(".class", "");
+        //     Class<?> myClass = Class.forName(packageName+"."+file);
+        //     Method[] methods = myClass.getMethods();
+        //     for(Method method : methods){
+        //         if(method.getAnnotation(etu1989.annotation.Url.class)!=null){
+        //             String url = method.getAnnotation(etu1989.annotation.Url.class).key();
+        //             String[] data = url.split("-");
+        //             this.UrlMapping.put(url,new Mapping(data[0], data[1]));
+        //         }
+        //     }
+        // }
     }
 
     public void init() throws ServletException{
@@ -65,41 +90,48 @@ public class FrontServlet extends HttpServlet{
         }
     }
 
-    // public void init() throws ServletException {
-    //     try {
-    //         UrlMapping = new HashMap<String, Mapping>();
-    //         String packageName = "etu1989.model";
-    //         //File folder = new File(req.getRequestURL());
-    //         URL root = Thread.currentThread().getContextClassLoader().getResource(packageName.replace(".", "/"));
-    //         String map=new File(root.getFile())+"\\";
-    //         System.out.println(map);
-    //         System.out.println(new File(map).listFiles());
-
-    //         for (File file : new File(root.getFile()).listFiles()) {
-    //             if (file.getName().contains(".class")) {
-    //                 String className = file.getName().replaceAll(".class", "");
-    //                 Class<?> cls = Class.forName(packageName + "." + className);
-    //                 for (Method method : cls.getDeclaredMethods()) {
-    //                     if (method.isAnnotationPresent(url.class)) {
-    //                         UrlMapping.put(method.getAnnotation(url.class).value(), new Mapping(cls.getName(), method.getName()));
-                            
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     } catch (Exception e) {
-    //         System.out.println(e);
-    //     }
-    // }
+    
 
     public void processRequest(HttpServletRequest request, HttpServletResponse response)throws IOException, ServletException {
-        // PrintWriter out = response.getWriter();
-        // out.println(request.getHttpServletMapping().getMatchValue());
-        // // Print all elements in this mappingurls
-        // out.println(UrlMapping.entrySet());
-        // for (Map.Entry<String, Mapping> entry : UrlMapping.entrySet()) {
-        //     out.println(entry.getKey() + " " + entry.getValue().getClassName() + " " + entry.getValue().getMethod());
-        // }
+        PrintWriter out = response.getWriter();
+        out.println(request.getHttpServletMapping().getMatchValue());
+
+        out.println(request.getRequestURI());
+        String url=request.getRequestURI();
+        //substring maka partie de phrase
+        url=url.substring(request.getContextPath().length()+1);
+        // Print all elements in this mappingurls
+        out.println(UrlMapping.entrySet());
+        for (Map.Entry<String, Mapping> entry : UrlMapping.entrySet()) {
+            out.println(entry.getKey() + " " + entry.getValue().getClassName() + " " + entry.getValue().getMethod());
+        }
+
+        if(UrlMapping.containsKey(url)){
+            Mapping test= UrlMapping.get(url);
+            String methodeName= test.getMethod();
+            try{
+
+                Class<?> cl = Class.forName(test.getClassName());
+                Method m= null;
+                Method[] methods= cl.getDeclaredMethods();
+                for (Method m1 :methods) {
+                    if(m1.getName().equals(methodeName) && m1.isAnnotationPresent(Url.class) ){
+                        m=m1;
+                        break;
+                    }
+                }
+                Object ob = cl.getConstructor().newInstance();
+                Object ob1 = m.invoke(ob);
+                if(ob1 instanceof ModelView){
+                    ModelView mv=(ModelView)ob1;
+                    RequestDispatcher rd= request.getRequestDispatcher(mv.getUrl());
+                    rd.forward(request,response);
+                } 
+
+            }catch (Exception e){
+                e.printStackTrace(out);
+            }
+        }
     }
 
 }
