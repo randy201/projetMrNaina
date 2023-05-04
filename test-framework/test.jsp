@@ -7,6 +7,6 @@
     <title>Document</title>
 </head>
 <body>
-    <h1>RESAKA FITIAVANA</h1>
+    <h1>RESAKA FITIAVANA ho an'i <%=request.getAttribute("nom") %></h1>
 </body>
 </html>
