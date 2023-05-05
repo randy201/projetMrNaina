@@ -5,6 +5,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.*;
 import java.lang.reflect.Field;
 
 import java.io.*;
@@ -96,6 +97,8 @@ public class FrontServlet extends HttpServlet{
         PrintWriter out = response.getWriter();
         out.println(request.getHttpServletMapping().getMatchValue());
 
+        
+
         out.println(request.getRequestURI());
         String url=request.getRequestURI();
         //substring maka partie de phrase
@@ -121,6 +124,33 @@ public class FrontServlet extends HttpServlet{
                     }
                 }
                 Object ob = cl.getConstructor().newInstance();
+                Field[] allf= cl.getDeclaredFields();
+                List<String> allparametre = Collections.list(request.getParameterNames());
+                for (Field f : allf) {
+                    for (String inparam : allparametre) {
+                        if(f.getName().equals(inparam)){
+                            String stock = f.getName();
+                            stock = stock.substring(0, 1).toUpperCase() +stock.substring(1, stock.length()) ;
+                            Method met = cl.getDeclaredMethod("set"+stock, f.getType());
+                            String value = request.getParameter(inparam);
+                            Object valTemp = value;
+                            if(f.getType() == Integer.class){
+                                valTemp = Integer.parseInt(String.valueOf(value));
+                            }else if(f.getType() == String.class){
+                                valTemp = value;
+                            }else if(f.getType() == Double.class){
+                                valTemp = Double.parseDouble(value);
+                            }else if(f.getType() == Boolean.class){
+                                valTemp = Boolean.parseBoolean(value);
+                            }else if(f.getType() == Date.class){//sql.date
+                               valTemp = java.sql.Date.valueOf(value);
+                            }
+                            met.invoke(ob, valTemp);
+                            break;
+                        }
+                    }
+                }
+
                 Object ob1 = m.invoke(ob);
                 if(ob1 instanceof ModelView){
                     ModelView mv=(ModelView)ob1;
