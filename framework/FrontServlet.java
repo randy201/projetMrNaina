@@ -10,6 +10,7 @@ import java.lang.reflect.Field;
 
 import java.io.*;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -115,6 +116,7 @@ public class FrontServlet extends HttpServlet{
             try{
 
                 Class<?> cl = Class.forName(test.getClassName());
+                Object ob = cl.getConstructor().newInstance();
                 Method m= null;
                 Method[] methods= cl.getDeclaredMethods();
                 for (Method m1 :methods) {
@@ -123,9 +125,38 @@ public class FrontServlet extends HttpServlet{
                         break;
                     }
                 }
-                Object ob = cl.getConstructor().newInstance();
-                Field[] allf= cl.getDeclaredFields();
+                Parameter[] allParam = m.getParameters();
+                Object[] obj =new Object[allParam.length];
                 List<String> allparametre = Collections.list(request.getParameterNames());
+                for (int i = 0; i < allParam.length; i++) {
+                    Parameter p = allParam[i];
+                    if(p.isAnnotationPresent(Param.class)){
+                        Param param = p.getAnnotation(Param.class);
+                        for (String inparam : allparametre) {
+                            if(param.key().equals(inparam)){
+                                String value = request.getParameter(inparam);
+                                Object valTemp = value;
+                                if(p.getType() == Integer.class){
+                                    valTemp = Integer.parseInt(String.valueOf(value));
+                                }else if(p.getType() == String.class){
+                                    valTemp = value;
+                                }else if(p.getType() == Double.class){
+                                    valTemp = Double.parseDouble(value);
+                                }else if(p.getType() == Boolean.class){
+                                    valTemp = Boolean.parseBoolean(value);
+                                }else if(p.getType() == Date.class){//sql.date
+                                   valTemp = java.sql.Date.valueOf(value);
+                                }
+                                obj[i]= valTemp;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+
+
+                Field[] allf= cl.getDeclaredFields();
                 for (Field f : allf) {
                     for (String inparam : allparametre) {
                         if(f.getName().equals(inparam)){
@@ -151,7 +182,7 @@ public class FrontServlet extends HttpServlet{
                     }
                 }
 
-                Object ob1 = m.invoke(ob);
+                Object ob1 = m.invoke(ob,obj);
                 if(ob1 instanceof ModelView){
                     ModelView mv=(ModelView)ob1;
                     RequestDispatcher rd= request.getRequestDispatcher(mv.getUrl());

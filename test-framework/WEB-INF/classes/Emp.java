@@ -51,4 +51,11 @@ public class Emp{
         return new ModelView("index.jsp");
     }
     
+    @Url(key="Emp-setNom")
+    public ModelView sprint8(@Param(key="nom") String nom){
+        ModelView Mv=new ModelView("sprint8.jsp");
+        Mv.addItem("nomm", nom);
+        return Mv;
+    }
+
 }
