@@ -13,5 +13,6 @@
 </head>
 <body>
     <%= employe.getNom() %>
+    <%= employe.getFichier().getFilename() %>
 </body>
 </html>

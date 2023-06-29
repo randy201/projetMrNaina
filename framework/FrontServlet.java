@@ -1,10 +1,8 @@
 package etu1989.framework.servlet;
 import jakarta.servlet.*;
+import jakarta.servlet.annotation.*;
 import jakarta.servlet.http.*;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.*;
 import java.lang.reflect.Field;
 
@@ -12,13 +10,11 @@ import java.io.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import etu1989.framework.Mapping;
+
 import etu1989.framework.*;
 import etu1989.annotation.*;
 
-
+@MultipartConfig
 public class FrontServlet extends HttpServlet{
     HashMap<String,Mapping> UrlMapping=  new HashMap<>();
     
@@ -159,7 +155,7 @@ public class FrontServlet extends HttpServlet{
                 Field[] allf= cl.getDeclaredFields();
                 for (Field f : allf) {
                     for (String inparam : allparametre) {
-                        if(f.getName().equals(inparam)){
+                        if(f.getName().equals(inparam) && f.getType() != etu1989.framework.Upload.class){
                             String stock = f.getName();
                             stock = stock.substring(0, 1).toUpperCase() +stock.substring(1, stock.length()) ;
                             Method met = cl.getDeclaredMethod("set"+stock, f.getType());
@@ -182,6 +178,22 @@ public class FrontServlet extends HttpServlet{
                     }
                 }
 
+
+                try {
+                    for (Field field : allf) {
+                        if (field.getType() == etu1989.framework.Upload.class) {
+                            String stock = field.getName();
+                            stock = stock.substring(0, 1).toUpperCase() +stock.substring(1, stock.length()) ;
+                            Method met = cl.getDeclaredMethod("set"+stock, field.getType());
+                            Object objct = this.fileTraitement(request.getParts(), field);
+                            met.invoke(ob, objct);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace(out);
+                    e.printStackTrace();
+                }
+
                 Object ob1 = m.invoke(ob,obj);
                 if(ob1 instanceof ModelView){
                     ModelView mv=(ModelView)ob1;
@@ -193,11 +205,54 @@ public class FrontServlet extends HttpServlet{
                     rd.forward(request,response);
 
                 } 
+                
 
             }catch (Exception e){
                 e.printStackTrace(out);
             }
         }
+    }
+    private String getFileName(jakarta.servlet.http.Part part) {
+        String contentDisposition = part.getHeader("content-disposition");
+        String[] parts = contentDisposition.split(";");
+        for (String partStr : parts) {
+            if (partStr.trim().startsWith("filename"))
+                return partStr.substring(partStr.indexOf('=') + 1).trim().replace("\"", "");
+        }
+        return null;
+    }
+
+    private Upload fillFileUpload(Upload file, jakarta.servlet.http.Part filepart) {
+        try (InputStream io = filepart.getInputStream()) {
+            ByteArrayOutputStream buffers = new ByteArrayOutputStream();
+            byte[] buffer = new byte[(int) filepart.getSize()];
+            int read;
+            while ((read = io.read(buffer, 0, buffer.length)) != -1) {
+                buffers.write(buffer, 0, read);
+            }
+            file.setFilename(this.getFileName(filepart));
+            file.setData(buffers.toByteArray());
+            return file;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public Upload fileTraitement(Collection<jakarta.servlet.http.Part> files, Field field) {
+        Upload file = new Upload();
+        String name = field.getName();
+        boolean exists = false;
+        String filename = null;
+        jakarta.servlet.http.Part filepart = null;
+        for (jakarta.servlet.http.Part part : files) {
+            if (part.getName().equals(name)) {
+                filepart = part;
+                break;
+            }
+        }
+        file = this.fillFileUpload(file, filepart);
+        return file;
     }
 
 }
