@@ -4,6 +4,9 @@ import jakarta.servlet.annotation.*;
 import jakarta.servlet.http.*;
 import java.io.*;
 import java.util.*;
+
+import javax.swing.GroupLayout.SequentialGroup;
+
 import java.lang.reflect.Field;
 
 import java.io.*;
@@ -17,6 +20,14 @@ import etu1989.annotation.*;
 @MultipartConfig
 public class FrontServlet extends HttpServlet{
     HashMap<String,Mapping> UrlMapping=  new HashMap<>();
+    HashMap<String,Object> singletons;
+
+    public HashMap<String, Object> getSingleton() {
+        return singletons;
+    }
+    public void setSingletons(HashMap<String, Object> singletons) {
+        this.singletons = singletons;
+    }
     
     protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException{
         res.setContentType("text/plain");
@@ -44,6 +55,7 @@ public class FrontServlet extends HttpServlet{
             String c = packageName+"."+f.getName().substring(0, f.getName().lastIndexOf("."));
             lists.add(Class.forName(c));
         }
+        HashMap<String,Object> tempo = new HashMap<String,Object>();
         for ( Class c : lists) {
             Method[] methods = c.getDeclaredMethods();
             for(Method m : methods){
@@ -55,34 +67,20 @@ public class FrontServlet extends HttpServlet{
                     }
                 }
             }
+            if(c.isAnnotationPresent(Scope.class)) {
+                Scope scope = (Scope) c.getAnnotation(Scope.class);
+                if( scope.name().equalsIgnoreCase("singleton") ){
+                    tempo.put(c.getName(), null);
+                }
+            }
         }
-        // String map = new File( root.getFile() ) + "\\";
-        // FileFilter filter = new FileFilter() {
-        //     public boolean accept(File f)
-        //     {
-        //         return f.getName().endsWith("class");
-        //     }
-        // };
-        // // for(File f : new File(map.replace("%20", " ")).listFiles(filter)){
-        // File ff= new File(map);
-        // for(File f : ff.listFiles(filter)){
-        
-        //     String file = f.getName().replace(".class", "");
-        //     Class<?> myClass = Class.forName(packageName+"."+file);
-        //     Method[] methods = myClass.getMethods();
-        //     for(Method method : methods){
-        //         if(method.getAnnotation(etu1989.annotation.Url.class)!=null){
-        //             String url = method.getAnnotation(etu1989.annotation.Url.class).key();
-        //             String[] data = url.split("-");
-        //             this.UrlMapping.put(url,new Mapping(data[0], data[1]));
-        //         }
-        //     }
-        // }
+        setSingletons(tempo);
     }
 
     public void init() throws ServletException{
         try{
-            getAllFile();            
+            getAllFile();     
+
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -112,8 +110,21 @@ public class FrontServlet extends HttpServlet{
             try{
 
                 Class<?> cl = Class.forName(test.getClassName());
-                Object ob = cl.getConstructor().newInstance();
+                Object ob = null;
                 Method m= null;
+                
+                if(getSingleton().containsKey(test.getClassName())){
+                    if(getSingleton().get(test.getClassName())==null){
+                        getSingleton().put(test.getClassName(), cl.getConstructor((Class[]) null).newInstance());
+                    }
+                    ob = getSingleton().get(test.getClassName());
+                    out.println("MISY SINGLETON");
+                }else{
+                    ob = cl.getConstructor((Class[]) null).newInstance();
+                    out.println("TSY MISY SINGLETON");
+
+                }
+
                 Method[] methods= cl.getDeclaredMethods();
                 for (Method m1 :methods) {
                     if(m1.getName().equals(methodeName) && m1.isAnnotationPresent(Url.class) ){
@@ -171,6 +182,9 @@ public class FrontServlet extends HttpServlet{
                                 valTemp = Boolean.parseBoolean(value);
                             }else if(f.getType() == Date.class){//sql.date
                                valTemp = java.sql.Date.valueOf(value);
+                            }else{
+                                valTemp = f.getType().getConstructor(String.class).newInstance(value);
+                                 
                             }
                             met.invoke(ob, valTemp);
                             break;
@@ -203,6 +217,7 @@ public class FrontServlet extends HttpServlet{
                         request.setAttribute(entry.getKey() , entry.getValue());
                     }
                     rd.forward(request,response);
+                    out.println(this.getSingleton());
 
                 } 
                 
