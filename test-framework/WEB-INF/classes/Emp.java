@@ -1,11 +1,21 @@
 package etu1989.model;
+import java.io.File;
+
 import etu1989.annotation.*;
 import etu1989.framework.*;
+@Scope(name="singleton")
 public class Emp{
     String nom;
     String prenom;
     Integer etu;
+    File fichier;
 
+    public void setFichier(File fichier) {
+        this.fichier = fichier;
+    }
+    public File getFichier() {
+        return fichier;
+    }
     public void setEtu(Integer etu) {
         this.etu = etu;
     }

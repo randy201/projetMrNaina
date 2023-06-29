@@ -24,6 +24,8 @@
     <request-character-encoding>UTF-8</request-character-encoding>
     <!-- Define servlets that are included in the example application -->
 
+
+
    <servlet>
         <servlet-name>FrontServlet</servlet-name>
         <servlet-class>etu1989.framework.servlet.FrontServlet</servlet-class>
