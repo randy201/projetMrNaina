@@ -5,7 +5,15 @@ public class Emp{
     String nom;
     String prenom;
     Integer etu;
+    Upload fichier;
 
+
+    public Upload getFichier() {
+        return fichier;
+    }
+    public void setFichier(Upload fichier) {
+        this.fichier = fichier;
+    }
     public void setEtu(Integer etu) {
         this.etu = etu;
     }

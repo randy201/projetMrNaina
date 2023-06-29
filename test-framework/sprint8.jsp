@@ -8,5 +8,7 @@
 </head>
 <body>
     <% out.println(request.getParameter("nom")); %>
+
+    
 </body>
 </html>

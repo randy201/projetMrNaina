@@ -7,7 +7,7 @@
     <title>Formulaire</title>
 </head>
 <body>
-    <form action="Emp-testEmp">
+    <form action="Emp-testEmp" method="post" enctype="multipart/form-data">
         <label for="nom">Nom:</label>
         <input type="text"  name="nom" id="nom">
 
@@ -16,6 +16,8 @@
 
         <label for="etu">Etu:</label>
         <input type="text"  name="etu" id="etu">
+
+        <input type="file" name="fichier" id="">
 
         <input type="submit" value="ok" >
     </form>

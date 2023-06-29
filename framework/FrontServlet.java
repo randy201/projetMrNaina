@@ -1,5 +1,6 @@
 package etu1989.framework.servlet;
 import jakarta.servlet.*;
+import jakarta.servlet.annotation.*;
 import jakarta.servlet.http.*;
 import java.io.*;
 import java.util.*;
@@ -13,7 +14,7 @@ import java.net.URL;
 import etu1989.framework.*;
 import etu1989.annotation.*;
 
-
+@MultipartConfig
 public class FrontServlet extends HttpServlet{
     HashMap<String,Mapping> UrlMapping=  new HashMap<>();
     
@@ -154,7 +155,7 @@ public class FrontServlet extends HttpServlet{
                 Field[] allf= cl.getDeclaredFields();
                 for (Field f : allf) {
                     for (String inparam : allparametre) {
-                        if(f.getName().equals(inparam)){
+                        if(f.getName().equals(inparam) && f.getType() != etu1989.framework.Upload.class){
                             String stock = f.getName();
                             stock = stock.substring(0, 1).toUpperCase() +stock.substring(1, stock.length()) ;
                             Method met = cl.getDeclaredMethod("set"+stock, f.getType());
@@ -180,12 +181,12 @@ public class FrontServlet extends HttpServlet{
 
                 try {
                     for (Field field : allf) {
-                        if (field.getType() == etu001935.framework.Upload.class) {
-                            String stock = f.getName();
+                        if (field.getType() == etu1989.framework.Upload.class) {
+                            String stock = field.getName();
                             stock = stock.substring(0, 1).toUpperCase() +stock.substring(1, stock.length()) ;
-                            Method met = cl.getDeclaredMethod("set"+stock, f.getType());
+                            Method met = cl.getDeclaredMethod("set"+stock, field.getType());
                             Object objct = this.fileTraitement(request.getParts(), field);
-                            mth.invoke(ob, objct);
+                            met.invoke(ob, objct);
                         }
                     }
                 } catch (Exception e) {
